@@ -1,31 +1,31 @@
 # 📋 **1. PLAN: Terraform for AWS Infrastructure Provisioning**
 
-We'll use **Terraform** to automate the creation of the AWS EC2 instance, EBS volume, security groups, and any other resources required for the DevSecOps pipeline.
+We'll use **Terraform** to automate the creation of the AWS EC2 instance, EBS volume, security groups, and other resources required for our **DevSecOps** pipeline.
 
-#### Key Terraform Tasks:
+### 🛠️ **Key Terraform Tasks:**
 
-1. Provision an **AWS EC2 instance** (Ubuntu 24.04 LTS).
-2. Attach a **50 GB EBS volume**.
-3. Configure **Security Groups** to allow access to necessary ports (e.g., SSH, HTTP, Docker/Kubernetes).
-4. Set up **IAM roles** for secure access to AWS resources.
+1. 🖥️ **Provision an AWS EC2 instance** (Ubuntu 24.04 LTS).
+2. 💾 **Attach a 50 GB EBS volume**.
+3. 🔒 **Configure Security Groups** to allow access to necessary ports (SSH, HTTP, Docker/Kubernetes).
+4. 🛡️ **Set up IAM roles** for secure access to AWS resources.
 
 ---
 
-### 🔑 **Terraform Configuration:**
+### 🔑 **Terraform Configuration**
 
-#### 1. **Provider Setup**
+#### 1. 🌍 **Provider Setup**
 
-The first step is configuring the **AWS provider** in Terraform:
+Configure the **AWS provider** in Terraform:
 
 ```hcl
 provider "aws" {
   region = "us-east-1"  # Change to your preferred AWS region
-  access_key = "your_access_key"  # Replace with actual AWS access key (use environment variables for security)
-  secret_key = "your_secret_key"  # Replace with actual AWS secret key (use environment variables for security)
+  access_key = "your_access_key"  # Replace with actual AWS access key
+  secret_key = "your_secret_key"  # Replace with actual AWS secret key
 }
 ```
 
-#### 2. **AWS EC2 Instance Configuration**
+#### 2. 🖥️ **AWS EC2 Instance Configuration**
 
 Define the AWS EC2 instance with the required specs (Ubuntu 24.04 LTS, t2.medium):
 
@@ -50,7 +50,7 @@ resource "aws_instance" "devsecops_instance" {
 }
 ```
 
-#### 3. **Security Group Configuration**
+#### 3. 🔒 **Security Group Configuration**
 
 Create a **Security Group** to allow necessary access:
 
@@ -96,9 +96,9 @@ resource "aws_security_group" "devsecops_sg" {
 }
 ```
 
-#### 4. **IAM Role for EC2 Instance**
+#### 4. 🛡️ **IAM Role for EC2 Instance**
 
-(Optional) Set up an IAM role if you want the EC2 instance to interact with AWS services securely, such as accessing S3 or CloudWatch logs.
+(Optional) Set up an **IAM role** to allow the EC2 instance to interact with AWS services securely:
 
 ```hcl
 resource "aws_iam_role" "devsecops_role" {
@@ -119,7 +119,7 @@ data "aws_iam_policy_document" "assume_role_policy" {
 }
 ```
 
-#### 5. **Terraform Output**
+#### 5. 📤 **Terraform Output**
 
 You can output the public IP of the EC2 instance once it’s provisioned:
 
@@ -135,19 +135,19 @@ output "instance_ip" {
 
 Now, to apply this configuration, use the following Terraform commands:
 
-1. **Initialize Terraform** (downloads required providers):
+1. 🧑‍💻 **Initialize Terraform** (downloads required providers):
 
    ```bash
    terraform init
    ```
 
-2. **Preview the changes** Terraform will apply:
+2. 📝 **Preview the changes** Terraform will apply:
 
    ```bash
    terraform plan
    ```
 
-3. **Apply the configuration** to provision the resources:
+3. 🚀 **Apply the configuration** to provision the resources:
 
    ```bash
    terraform apply
@@ -157,9 +157,11 @@ Now, to apply this configuration, use the following Terraform commands:
 
 ---
 
-### 💡 Notes:
+### 💡 **Notes:**
 
-* Make sure your **AWS credentials** are properly set up. You can use environment variables, `~/.aws/credentials`, or configure through AWS CLI.
+* Make sure your **AWS credentials** are properly set up. You can use environment variables, `~/.aws/credentials`, or configure them via AWS CLI.
 * The **AMI ID** for Ubuntu 24.04 LTS varies by region. You can find the correct AMI ID by searching the [AWS Marketplace](https://aws.amazon.com/marketplace) or using the AWS EC2 console.
 
 ---
+
+This configuration will provision a **DevSecOps EC2 instance** on AWS, configure **security groups**, and optionally provide **IAM roles** for secure access.
