@@ -5,58 +5,95 @@ Create a script called `setup-devsecops.sh`:
 ```bash
 #!/bin/bash
 
-# Update and upgrade system
-echo "Updating system..."
-sudo apt-get update -y
-sudo apt-get upgrade -y
+set -euo pipefail
 
-# Install Docker
-echo "Installing Docker..."
-sudo apt-get install -y docker.io
-sudo systemctl enable docker
-sudo systemctl start docker
+# Log function
+log() {
+  echo -e "\n\033[1;32m[INFO]\033[0m $1\n"
+}
 
-# Install K3s (Lightweight Kubernetes)
-echo "Installing K3s..."
-curl -sfL https://get.k3s.io | sh -
-sudo systemctl enable k3s
-sudo systemctl start k3s
+# Ensure script is run as root
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root or with sudo"
+  exit 1
+fi
 
-# Install Jenkins
-echo "Installing Jenkins..."
-curl -fsSL https://pkg.jenkins.io/debian/jenkins.io.key | tee /usr/share/keyrings/jenkins.asc
-echo "deb http://pkg.jenkins.io/debian/ /" | sudo tee /etc/apt/sources.list.d/jenkins.list
-sudo apt-get update -y
-sudo apt-get install -y jenkins
-sudo systemctl enable jenkins
-sudo systemctl start jenkins
+log "Updating system packages..."
+apt update && apt full-upgrade -y
 
-# Install SonarQube
-echo "Installing SonarQube..."
-sudo apt-get install -y openjdk-11-jdk unzip wget
-wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.7.1.59510.zip
-sudo unzip sonarqube-9.7.1.59510.zip -d /opt
-sudo ln -s /opt/sonarqube-9.7.1.59510 /opt/sonarqube
-sudo useradd sonar
-sudo chown -R sonar:sonar /opt/sonarqube
-sudo systemctl enable sonarqube
-sudo systemctl start sonarqube
+### ----------------- Docker Installation -----------------
+log "Installing Docker (from Ubuntu repo)..."
+apt install -y docker.io
+systemctl enable --now docker
 
-# Install Trivy (For Docker image scanning)
-echo "Installing Trivy..."
-sudo apt-get install -y apt-transport-https
-echo "deb https://aquasecurity.github.io/trivy-repo/deb main" | sudo tee /etc/apt/sources.list.d/trivy.list
-curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo tee /etc/apt/trusted.gpg.d/trivy.asc
-sudo apt-get update -y
-sudo apt-get install -y trivy
+### ----------------- K3s Installation -----------------
+log "Installing K3s (Lightweight Kubernetes)..."
+/usr/bin/curl -sfL https://get.k3s.io | sh -
+systemctl enable --now k3s
 
-# Print the installation status
-echo "Installation complete!"
-echo "Docker version: $(docker --version)"
-echo "K3s version: $(k3s --version)"
-echo "Jenkins status: $(systemctl is-active jenkins)"
-echo "SonarQube status: $(systemctl is-active sonarqube)"
-echo "Trivy version: $(trivy --version)"
+### ----------------- Jenkins Installation -----------------
+log "Installing Jenkins (from official Jenkins repo)..."
+
+# Install dependencies
+apt install -y fontconfig openjdk-17-jdk
+
+# Add Jenkins key and repo (use Debian bookworm which works on 24.04)
+curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | tee \
+  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/" \
+  > /etc/apt/sources.list.d/jenkins.list
+
+apt update
+apt install -y jenkins
+systemctl enable --now jenkins
+
+### ----------------- SonarQube Installation -----------------
+log "Installing SonarQube (manual install)..."
+
+# Install Java
+apt install -y openjdk-17-jdk unzip wget
+
+# Create a sonar user
+useradd -m -d /opt/sonarqube sonar || true
+
+# Download and extract SonarQube
+SONAR_VERSION="10.2.1.78527"
+cd /opt
+wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONAR_VERSION}.zip
+unzip sonarqube-${SONAR_VERSION}.zip
+
+# Create symlink only if it doesn't exist
+[ -L /opt/sonarqube ] || ln -s sonarqube-${SONAR_VERSION} sonarqube
+
+chown -R sonar:sonar /opt/sonarqube*
+
+# Create SonarQube systemd service
+log "Creating SonarQube systemd service..."
+
+cat <<EOF > /etc/systemd/system/sonarqube.service
+[Unit]
+Description=SonarQube service
+After=network.target
+
+[Service]
+Type=simple
+User=sonar
+Group=sonar
+ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+Restart=always
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reexec
+systemctl daemon-reload
+systemctl enable --now sonarqube
+
+log "DevSecOps environment setup completed successfully!"
 ```
 
 ### 🛠️ **Explanation of the Script**
